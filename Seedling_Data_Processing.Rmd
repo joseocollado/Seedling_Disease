@@ -1,0 +1,755 @@
+---
+title: "Sample Data Vis"
+author: "Jose Collado"
+date: "2024-03-13"
+output: html_document
+---
+
+```{r color palettes, echo=FALSE}
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+```
+
+```{r First Data Set Reformatting}
+setwd("~/OneDrive/Work.Academic/Berkeley/Postbac/R Files/Seedling Files")
+
+library(data.table)
+library(tidyverse)
+
+#load in data
+one_raw_seedling_data <- read.csv("one_raw_seedling_data.csv")
+
+#remove X from title with gsub
+names(one_raw_seedling_data) <- gsub("X","",names(one_raw_seedling_data))
+
+#rename columns as needed
+#one_raw_seedling_data <- one_raw_seedling_data %>%
+  #rename(
+    #Treatment = Treatment.Group,
+    #Seedling_Number = seeding..
+    #)
+
+#not needed anymore, made edits on excel file directly
+
+#reformat data from wide to long using melt
+one_data_long <-melt(setDT(one_raw_seedling_data),id.vars=c("Treatment","Replicate", "Seedling_Number"), variable.name = "Day")
+
+#given error above, check all the columns to see which are factors
+  # not really sure what it means 
+str(one_data_long)
+
+#remove seedlings in NA treatment
+  # unable to figure out how to only remove NA in specific column
+#seedling_data_drop_NA <- na.omit(seedling_data_long)
+    # deleting necessary data so do not use
+```
+
+```{r Second Data Set Reformatting}
+library(data.table)
+library(tidyverse)
+
+#load in data
+two_raw_seedling_data <- read.csv("two_raw_seedling_data.csv")
+
+#remove X from title with gsub
+names(two_raw_seedling_data) <- gsub("X","",names(two_raw_seedling_data))
+
+#reformat data from wide to long using melt
+two_data_long <-melt(setDT(two_raw_seedling_data),id.vars=c("Treatment","Replicate", "Seedling_Number"), variable.name = "Day")
+
+#given error above, check all the columns to see which are factors
+  # not really sure what it means 
+str(two_data_long)
+```
+
+```{r Third Data Set Reformatting}
+library(data.table)
+library(tidyverse)
+
+#load in data
+three_raw_seedling_data <- read.csv("three_raw_seedling_data.csv")
+
+#remove X from title with gsub
+names(three_raw_seedling_data) <- gsub("X","",names(three_raw_seedling_data))
+
+#reformat data from wide to long using melt
+three_data_long <-melt(setDT(three_raw_seedling_data),id.vars=c("Treatment","Replicate", "Seedling_Number"), variable.name = "Day")
+
+#given error above, check all the columns to see which are factors
+  # not really sure what it means 
+str(three_data_long)
+```
+
+```{r Fourth Data Set Reformatting}
+library(data.table)
+library(tidyverse)
+
+#load in data
+four_raw_seedling_data <- read.csv("four_raw_seedling_data.csv")
+
+#remove X from title with gsub
+names(four_raw_seedling_data) <- gsub("X","",names(four_raw_seedling_data))
+
+#reformat data from wide to long using melt
+four_data_long <-melt(setDT(four_raw_seedling_data),id.vars=c("Treatment","Replicate", "Seedling_Number",".SC."), variable.name = "Day")
+
+#given error above, check all the columns to see which are factors
+  # not really sure what it means 
+str(four_data_long)
+```
+
+```{r Fifth Data Set Reformatting}
+library(data.table)
+library(tidyverse)
+
+#load in data
+five_raw_seedling_data <- read.csv("five_raw_seedling_data.csv")
+
+#remove X from title with gsub
+names(five_raw_seedling_data) <- gsub("X","",names(five_raw_seedling_data))
+
+#reformat data from wide to long using melt
+five_data_long <-melt(setDT(five_raw_seedling_data),id.vars=c("Treatment","Replicate", "Seedling_Number","Pathogen"), variable.name = "Day")
+
+#given error above, check all the columns to see which are factors
+  # not really sure what it means 
+str(five_data_long)
+```
+
+```{r Merge & Clean Up Datasets}
+
+# literally copy pasted from stack exchange LOL so I don't fully understand what this is doing
+# seems like defining own command and running it 
+  # from https://stackoverflow.com/questions/62378965/combine-several-datasets-in-r
+
+get_binded_data <- function(data_name) {
+   dplyr::bind_rows(mget(data_name, envir = .GlobalEnv), .id = "File_Name")
+}
+
+#running newly made command to combine following datasets and add column that is the file name
+merged_seedling_data <- get_binded_data(c("one_data_long","two_data_long","three_data_long","four_data_long","five_data_long"))
+
+# move column location using relocate from dplyr
+merged_seedling_data <- merged_seedling_data %>% 
+  relocate(.SC.,.after = Replicate)
+
+#from https://stackoverflow.com/questions/51132318/replace-column-values-with-vector-in-r-stringr
+#define old values you want to be replaced with new values into lookup
+  # unsure why tribble is used
+lookup <- tribble(
+  ~File_Name, ~Seedling_Set,
+  "one_data_long",     "First",
+  "two_data_long",     "Second",
+  "three_data_long",     "Third",
+  "four_data_long",     "Fourth",
+  "five_data_long",     "Fifth"
+)
+
+# make dataset of matched columns and their values 
+FileName_Replacement <- tibble(x = merged_seedling_data$File_Name) %>%
+  left_join(lookup, by = c("x" = "File_Name"))
+
+# replace target column values with matched column 
+merged_seedling_data$File_Name <- FileName_Replacement$Seedling_Set
+
+# rename column as needed
+names(merged_seedling_data) <- gsub("File_Name","Seedling_Set",names(merged_seedling_data))
+
+# move column location using relocate from dplyr
+merged_seedling_data <- merged_seedling_data %>% 
+  relocate(.SC.,.after = Replicate) %>%
+  relocate(Pathogen,.after = .SC.)
+
+
+#view your now beautiful data
+merged_seedling_data
+
+# clean up the environment :')
+remove(list=ls(pattern="five_"))
+remove(list=ls(pattern="four_"))
+remove(list=ls(pattern="three_"))
+remove(list=ls(pattern="two_"))
+remove(list=ls(pattern="one_"))
+remove(FileName_Replacement)
+remove(lookup)
+```
+
+```{r Data Graphing}
+library(ggplot2)
+
+# specify the factor levels of seedling sets to order legend correctly
+# merged_seedling_data$Seedling_Set <- factor(merged_seedling_data$Seedling_Set, levels = c("First", "Second", "Third","Fourth"))
+  # for some reason, making these factors messes up AUC code.
+  # if you need following graph to order, do this separately
+
+
+# Merged Data
+ggplot(merged_seedling_data, aes(x = Day,y = value, group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values=safe_colorblind_palette) +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set") 
+
+# By Seedling Set
+
+# Set 1
+ggplot(subset(merged_seedling_data,Seedling_Set %in% "First"),aes(x = Day,y = value,group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values='#CC6677') +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set") 
+
+# Set 2
+ggplot(subset(merged_seedling_data,Seedling_Set %in% "Second"),aes(x = Day,y = value,group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values='#117733') +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set") 
+
+# Set 3
+ggplot(subset(merged_seedling_data,Seedling_Set %in% "Third"),aes(x = Day,y = value,group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values='#332288') +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set") 
+
+# Set 4
+ggplot(subset(merged_seedling_data,Seedling_Set %in% "Fourth"),aes(x = Day,y = value,group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values='#DDCC77') +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set")
+
+# Set 5
+ggplot(subset(merged_seedling_data,Seedling_Set %in% "Fifth"),aes(x = Day,y = value,group = Seedling_Number)) +
+  geom_point(size=0.5) + 
+  geom_line(aes(color=Seedling_Set)) +
+  scale_color_manual(values='#88CCEE') +
+  facet_wrap(~Treatment) + 
+  theme(legend.position="right") +
+  labs(x="Day", y="Disease Score",title = "Seedling Disease Score by Treatment Group",color="Seedling Set")
+
+```
+
+```{r Calculating AUC}
+library(agricolae)
+library(dplyr)
+#from https://stackoverflow.com/questions/73123750/area-under-disease-progress-curve-audpc
+
+#because Day is a factor, we have to change it to an integer for the audps function to work
+merged_seedling_data$Day <- as.numeric(levels(merged_seedling_data$Day))[merged_seedling_data$Day]
+
+#just to double check that the class change worked.
+str(merged_seedling_data)
+
+#get audps values for each seedling and save values
+seedling_AUC <- merged_seedling_data %>% 
+  group_by(Seedling_Number) %>% 
+  summarise(across(value, ~ audps(.x, sort(Day))))
+
+# Use left_join to add AUC value to each instance of the Seedling_number
+AUC_seedling <- left_join(merged_seedling_data,seedling_AUC, by = "Seedling_Number")
+
+# rename columns as needed
+AUC_seedling <- AUC_seedling %>%
+  rename(
+    value = value.x,
+    AUC =value.y
+    )
+
+#clean up environment
+remove(seedling_AUC)
+remove(merged_seedling_data)
+```
+
+```{r Treatment P-values per sets 1-3, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+AUC_1.3_grouped <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% c('First','Second','Third')),Seedling_Set,Treatment,Replicate,Seedling_Number,AUC))
+
+# specify the factor levels of seedling sets to order legend correctly
+AUC_1.3_grouped$Seedling_Set <- factor(AUC_1.3_grouped$Seedling_Set, levels = c("First", "Second", "Third"))
+
+#grouping by treatment group and performing t-test
+AUC_1.3_grouped_test <- AUC_1.3_grouped %>%
+  group_by(Treatment) %>%
+  t_test(AUC ~ Seedling_Set) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+AUC_1.3_grouped_test <- AUC_1.3_grouped_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_grouped <- ggboxplot(AUC_1.3_grouped, x = "Treatment", y = "AUC", fill = "Seedling_Set")
+
+treatment_order <- c("(-) - Neg Control","(+) - Pos Control","(SC) - SC Control","Protection","Competition","Rescue","None")
+
+AUC_bxp_grouped + 
+  stat_pvalue_manual(AUC_1.3_grouped_test, label = "p.adj.signif", 
+                     y.position=(20)*1.1,step.group.by = "Treatment", step.increase = 0.1) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  scale_fill_manual(values = safe_colorblind_palette) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  scale_x_discrete(limits=treatment_order)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_1.3"))
+```
+
+```{r P-Values Across Treatment in sets 1-3}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+AUC_1.3_joined <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% c('First','Second','Third')),Seedling_Set,Treatment,Replicate,Seedling_Number,AUC))
+
+treatment_order <- c("(-) - Neg Control","(+) - Pos Control","(SC) - SC Control","Protection","Competition","Rescue")
+
+#grouping by treatment group and performing t-test
+AUC_1.3_joined_test <- AUC_1.3_joined %>%
+  ungroup() %>%
+  t_test(AUC ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+  # view all stat tests if you want
+
+#to include only significant ones on figure 
+AUC_1.3_joined_test <- AUC_1.3_joined_test %>%
+  filter(p.adj.signif != "ns")
+
+#auc_stat_test_2 <- auc_stat_test_2 %>%
+  #add_xy_position(x = "Treatment")
+  # for some reason this messes up the signficance position?
+AUC_bxp_joined <- ggboxplot(AUC_1.3_joined, x = "Treatment", y = "AUC", fill = "Treatment")
+
+AUC_bxp_joined + 
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = safe_colorblind_palette)
+
+  #dimensions for LEI poster: 520 x 560
+
+#clean up the environment
+remove(list=ls(pattern="AUC_1.3"))
+```
+
+```{r Graphing CFU Counts & P-Values set 3}
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+
+#load in data & check variable types
+three_seedling_CFUs <- read.csv("three_seedling_CFU.csv")
+str(three_seedling_CFUs)
+
+# CFU_per_mL calcs
+
+#performing t-tests
+AUC_3_CFU_test <- three_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mL ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_3_CFU_test <- AUC_3_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+three_seedling_CFUs$CFU_per_mL <- log10(three_seedling_CFUs$CFU_per_mL)
+
+AUC_3_bxp_CFU <- ggboxplot(three_seedling_CFUs, x = "Treatment", y = "CFU_per_mL", fill = "Treatment")
+
+AUC_3_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mL]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#117733", "#AA4499","#332288", "#88CCEE","#DDCC77", "#CC6677"))
+
+
+#CFU_per_mg calcs
+
+#performing t-tests
+AUC_3_CFU_test <- three_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mg ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_3_CFU_test <- AUC_3_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+three_seedling_CFUs$CFU_per_mL <- log10(three_seedling_CFUs$CFU_per_mL)
+
+AUC_3_bxp_CFU <- ggboxplot(three_seedling_CFUs, x = "Treatment", y = "CFU_per_mL", fill = "Treatment")
+
+AUC_3_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mL]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#117733", "#AA4499","#332288", "#88CCEE","#DDCC77", "#CC6677"))
+
+#dimensions for LEI poster: 520 x 560
+
+# if results were significant, following would add significance values
+  #stat_pvalue_manual(AUC_CFU_test, label = "p.adj.signif", y.position=(5)*1.1,step.increase = 0.1)
+
+#clean up the environment
+remove("AUC_3_CFU_test")
+```
+
+```{r Treatment P-values per sets 1-4, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+AUC_1.4_grouped <-
+  summarize(group_by(subset(AUC_seedling,Day %in% c('1','2','3','4','5','6','7')),Seedling_Set,Treatment,Replicate,Seedling_Number,AUC))
+
+# specify the factor levels of seedling sets to order legend correctly
+AUC_1.4_grouped$Seedling_Set <- factor(AUC_1.4_grouped$Seedling_Set, levels = c("First", "Second", "Third","Fourth"))
+
+#grouping by treatment group and performing t-test
+AUC_1.4_grouped_test <- AUC_1.4_grouped %>%
+  group_by(Treatment) %>%
+  t_test(AUC ~ Seedling_Set) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+#to include only significant ones on figure 
+AUC_1.4_grouped_test <- AUC_1.4_grouped_test %>%
+  filter(p.adj.signif != "ns")
+
+AUC_1.4_grouped_test <- AUC_1.4_grouped_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_grouped <- ggboxplot(AUC_1.4_grouped, x = "Treatment", y = "AUC", fill = "Seedling_Set")
+
+treatment_order <- c("(-) - Neg Control","(+) - Pos Control","(SC) - SC Control","Protection","Competition","Rescue","None")
+
+AUC_bxp_grouped + 
+  stat_pvalue_manual(AUC_1.4_grouped_test, label = "p.adj.signif", 
+                     y.position=(20)*1.1,step.group.by = "Treatment", step.increase = 0.1) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  scale_fill_manual(values = safe_colorblind_palette) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  scale_x_discrete(limits=treatment_order)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_1.4"))
+```
+
+```{r SC Inoculation P-values in set 4, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+#filter data to only treatments that get SC in the fourth set 
+AUC_4_SC <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% 'Fourth' & !.SC. %in% 'Ps/MgCl2'),Seedling_Set,Treatment,Replicate,.SC.,Seedling_Number,AUC))
+
+#grouping by treatment and performing t-test on SC concentration
+AUC_4_SC_test <- AUC_4_SC %>%
+  group_by(Treatment) %>%
+  t_test(AUC ~ .SC.) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+#to include only significant ones on figure 
+AUC_4_SC_test <- AUC_4_SC_test %>%
+  filter(p.adj.signif != "ns")
+
+AUC_4_SC_test <- AUC_4_SC_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_4_SC <- ggboxplot(AUC_4_SC, x = "Treatment", y = "AUC", fill = ".SC.")
+
+treatment_order <- c("(SC) - SC Control","Protection","Competition","Rescue")
+
+AUC_bxp_4_SC + 
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = safe_colorblind_palette)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_4_SC"))
+```
+
+```{r Treatment P-values in set 4, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+#filter data to only treatments that get SC in the fourth set 
+AUC_4 <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% 'Fourth'),Seedling_Set,Treatment,Replicate,.SC.,Seedling_Number,AUC))
+
+#grouping by treatment and performing t-test on SC concentration
+AUC_4_test <- AUC_4 %>%
+  ungroup() %>%
+  t_test(AUC ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+#to include only significant ones on figure 
+AUC_4_test <- AUC_4_test %>%
+  filter(p.adj.signif != "ns")
+
+AUC_4_test <- AUC_4_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_4 <- ggboxplot(AUC_4, x = "Treatment", y = "AUC", fill = "Treatment")
+
+treatment_order <- c("(-) - Neg Control","(+) - Pos Control","(SC) - SC Control","Protection","Competition","Rescue")
+
+AUC_bxp_4 + 
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = safe_colorblind_palette)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_4"))
+```
+
+```{r Graphing CFU Counts & P-Values set 4}
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+
+#load in data & check variable types
+four_seedling_CFUs <- read.csv("four_seedling_CFU.csv")
+str(four_seedling_CFUs)
+
+# looking at CFU_per_mL
+
+#performing t-tests
+AUC_4_CFU_test <- four_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mL ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_4_CFU_test <- AUC_4_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+four_seedling_CFUs$CFU_per_mL <- log10(four_seedling_CFUs$CFU_per_mL)
+
+AUC_4_bxp_CFU <- ggboxplot(four_seedling_CFUs, x = "Treatment", y = "CFU_per_mL", fill = "Treatment")
+
+AUC_4_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mL]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#AA4499", "#332288","#117733", "#88CCEE","#DDCC77", "#CC6677"))
+
+#dimensions for LEI poster: 520 x 560
+
+# looking at CFU_per_mg
+#performing t-tests
+AUC_4_CFU_test <- four_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mg ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_4_CFU_test <- AUC_4_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+four_seedling_CFUs$CFU_per_mg <- log10(four_seedling_CFUs$CFU_per_mg)
+
+AUC_4_bxp_CFU <- ggboxplot(four_seedling_CFUs, x = "Treatment", y = "CFU_per_mg", fill = "Treatment")
+
+AUC_4_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mL]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#AA4499", "#332288","#117733", "#88CCEE","#DDCC77", "#CC6677"))
+
+# if results were significant, following would add significance values
+  #stat_pvalue_manual(AUC_CFU_test, label = "p.adj.signif", y.position=(5)*1.1,step.increase = 0.1)
+
+#clean up the environment
+remove("AUC_4_CFU_test")
+```
+
+```{r Pathogen Inoculation P-values in set 5, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+#filter data to only treatments that get SC in the fourth set 
+AUC_5_Pathogen <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% 'Fifth' & !Pathogen %in% 'None'),Seedling_Set,Treatment,Replicate,Pathogen,Seedling_Number,AUC))
+
+#grouping by treatment and performing t-test on SC concentration
+AUC_5_Pathogen_test <- AUC_5_Pathogen %>%
+  group_by(Treatment) %>%
+  t_test(AUC ~ Pathogen) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+#to include only significant ones on figure 
+AUC_5_Pathogen_test <- AUC_5_Pathogen_test %>%
+  filter(p.adj.signif != "ns")
+
+AUC_5_Pathogen_test <- AUC_5_Pathogen_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_5_Pathogen <- ggboxplot(AUC_5_Pathogen, x = "Treatment", y = "AUC", fill = "Pathogen")
+
+treatment_order <- c("(DC) - DC Control", "(PT) - PT Control","Protection","Competition","Rescue")
+
+AUC_bxp_5_Pathogen + 
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "right") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = safe_colorblind_palette)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_5_Pathogen"))
+```
+
+```{r Treatment P-values in set 5, warnings=FALSE}
+library(rstatix)
+library(ggpubr)
+library(ggplot2)
+
+#filter data to only treatments that get SC in the fourth set 
+AUC_5 <-
+  summarize(group_by(subset(AUC_seedling,Seedling_Set %in% 'Fifth'),Seedling_Set,Treatment,Replicate,Pathogen,Seedling_Number,AUC))
+
+#grouping by treatment and performing t-test on SC concentration
+AUC_5_test <- AUC_5 %>%
+  ungroup() %>%
+  t_test(AUC ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj")
+
+#to include only significant ones on figure 
+AUC_5_test <- AUC_5_test %>%
+  filter(p.adj.signif != "ns")
+
+AUC_5_test <- AUC_5_test %>% add_xy_position(x = "Treatment")
+AUC_bxp_5 <- ggboxplot(AUC_5, x = "Treatment", y = "AUC", fill = "Treatment")
+
+treatment_order <- c("(-) - Neg Control","(DC) - DC Control","(PT) - PT Control","(13) - 13 Control","Protection","Competition","Rescue")
+
+AUC_bxp_5 + 
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("Area Under the Disease Curve") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = safe_colorblind_palette)
+
+#clean up the environment
+remove(list=ls(pattern="AUC_5"))
+```
+
+```{r Graphing CFU Counts & P-Values set 5}
+library(data.table)
+library(tidyverse)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+
+#load in data & check variable types
+five_seedling_CFUs <- read.csv("five_seedling_CFU.csv")
+str(five_seedling_CFUs)
+
+# looking at CFU_per_mL
+
+#performing t-tests
+AUC_5_CFU_test <- five_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mL ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_5_CFU_test <- AUC_5_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+five_seedling_CFUs$CFU_per_mL <- log10(five_seedling_CFUs$CFU_per_mL)
+
+AUC_5_bxp_CFU <- ggboxplot(five_seedling_CFUs, x = "Treatment", y = "CFU_per_mL", fill = "Treatment")
+
+AUC_5_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mL]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#AA4499", "#332288","#117733", "#88CCEE","#DDCC77", "#CC6677"))
+
+#dimensions for LEI poster: 520 x 560
+
+# looking at CFU_per_mg
+#performing t-tests
+AUC_5_CFU_test <- five_seedling_CFUs %>%
+  ungroup() %>%
+  t_test(CFU_per_mg ~ Treatment) %>%
+  adjust_pvalue() %>%
+  add_significance("p.adj") 
+
+#filter data include only significant ones on figure 
+AUC_5_CFU_test <- AUC_5_CFU_test %>%
+  filter(p.adj.signif != "ns")
+
+#log transform the data
+five_seedling_CFUs$CFU_per_mg <- log10(five_seedling_CFUs$CFU_per_mg)
+
+AUC_5_bxp_CFU <- ggboxplot(five_seedling_CFUs, x = "Treatment", y = "CFU_per_mg", fill = "Treatment")
+
+AUC_5_bxp_CFU +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  xlab("Treatment Group") + ylab("log(Colony Forming Units) [CFU/mg]") +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  scale_x_discrete(limits=treatment_order) +
+  scale_fill_manual(values = c( "#AA4499", "#332288","#117733", "#88CCEE","#DDCC77", "#CC6677"))
+
+# if results were significant, following would add significance values
+  #stat_pvalue_manual(AUC_CFU_test, label = "p.adj.signif", y.position=(5)*1.1,step.increase = 0.1)
+
+#clean up the environment
+remove("AUC_5_CFU_test")
+```
